@@ -22,28 +22,31 @@ jobs:
         run: flutter doctor
 
       - name: Create FFI plugin
-        run: |
-          flutter create --template=plugin_ffi --platforms=android,ios opencv_native
+        run: flutter create --template=plugin_ffi --platforms=android,ios opencv_native
 
       - name: Add simple native C++ file
         run: |
           mkdir -p opencv_native/android/src/main/cpp
-          echo '#include <jni.h>
+          cat << 'EOF' > opencv_native/android/src/main/cpp/native_lib.cpp
+#include <jni.h>
 extern "C" JNIEXPORT jint JNICALL
 Java_com_example_opencv_1native_NativeLib_add(JNIEnv*, jobject, jint a, jint b) {
     return a + b;
-}' > opencv_native/android/src/main/cpp/native_lib.cpp
+}
+EOF
 
-          # CMakeLists.txt для сборки
-          echo 'cmake_minimum_required(VERSION 3.4.1)
+          cat << 'EOF' > opencv_native/android/src/main/cpp/CMakeLists.txt
+cmake_minimum_required(VERSION 3.4.1)
 add_library(native_lib SHARED native_lib.cpp)
 find_library(log-lib log)
-target_link_libraries(native_lib ${log-lib})' > opencv_native/android/src/main/cpp/CMakeLists.txt
+target_link_libraries(native_lib ${log-lib})
+EOF
 
-      - name: Update example to call FFI
+      - name: Update plugin and example
         run: |
-          # Создаём Dart FFI wrapper
-          echo "import 'dart:ffi';
+          # Dart FFI wrapper
+          cat << 'EOF' > opencv_native/lib/opencv_native.dart
+import 'dart:ffi';
 import 'dart:io';
 import 'package:ffi/ffi.dart';
 
@@ -65,17 +68,20 @@ class NativeLib {
     final func = _lib.lookupFunction<c_add_func, dart_add_func>('Java_com_example_opencv_1native_NativeLib_add');
     return func(a, b);
   }
-}" > opencv_native/lib/opencv_native.dart
+}
+EOF
 
-          # Подключаем вызов в example/main.dart
-          echo "import 'package:flutter/material.dart';
+          # Example main.dart
+          cat << 'EOF' > opencv_native/example/lib/main.dart
+import 'package:flutter/material.dart';
 import 'package:opencv_native/opencv_native.dart';
 
 void main() {
   final lib = NativeLib();
-  print('2 + 3 = \${lib.add(2, 3)}');
+  print('2 + 3 = ${lib.add(2, 3)}');
   runApp(const MaterialApp(home: Scaffold(body: Center(child: Text('Hello FFI')))));
-}" > opencv_native/example/lib/main.dart
+}
+EOF
 
       - name: Get Flutter packages for example
         run: |
