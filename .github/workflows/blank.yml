@@ -27,7 +27,7 @@ jobs:
       - name: Add simple native C++ file
         run: |
           mkdir -p opencv_native/android/src/main/cpp
-          cat << 'EOF' > opencv_native/android/src/main/cpp/native_lib.cpp
+          cat <<EOF > opencv_native/android/src/main/cpp/native_lib.cpp
 #include <jni.h>
 extern "C" JNIEXPORT jint JNICALL
 Java_com_example_opencv_1native_NativeLib_add(JNIEnv*, jobject, jint a, jint b) {
@@ -35,17 +35,16 @@ Java_com_example_opencv_1native_NativeLib_add(JNIEnv*, jobject, jint a, jint b) 
 }
 EOF
 
-          cat << 'EOF' > opencv_native/android/src/main/cpp/CMakeLists.txt
+          cat <<EOF > opencv_native/android/src/main/cpp/CMakeLists.txt
 cmake_minimum_required(VERSION 3.4.1)
 add_library(native_lib SHARED native_lib.cpp)
 find_library(log-lib log)
 target_link_libraries(native_lib ${log-lib})
 EOF
 
-      - name: Update plugin and example
+      - name: Add Dart FFI wrapper
         run: |
-          # Dart FFI wrapper
-          cat << 'EOF' > opencv_native/lib/opencv_native.dart
+          cat <<EOF > opencv_native/lib/opencv_native.dart
 import 'dart:ffi';
 import 'dart:io';
 import 'package:ffi/ffi.dart';
@@ -71,14 +70,15 @@ class NativeLib {
 }
 EOF
 
-          # Example main.dart
-          cat << 'EOF' > opencv_native/example/lib/main.dart
+      - name: Update example main.dart
+        run: |
+          cat <<EOF > opencv_native/example/lib/main.dart
 import 'package:flutter/material.dart';
 import 'package:opencv_native/opencv_native.dart';
 
 void main() {
   final lib = NativeLib();
-  print('2 + 3 = ${lib.add(2, 3)}');
+  print('2 + 3 = \${lib.add(2, 3)}');
   runApp(const MaterialApp(home: Scaffold(body: Center(child: Text('Hello FFI')))));
 }
 EOF
